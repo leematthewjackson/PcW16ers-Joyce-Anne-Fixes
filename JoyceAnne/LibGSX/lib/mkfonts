@@ -1,0 +1,7 @@
+#! /bin/sh
+psfxform --codepage=AMSTRAD --strip --psf1 gsans08.psf | psf2inc > gsans08.inc
+psfxform --codepage=AMSTRAD --strip --psf1 gsans14.psf | psf2inc > gsans14.inc
+psfxform --codepage=AMSTRAD --strip --psf1 gsans16.psf | psf2inc > gsans16.inc
+psfxform --codepage=AMSTRAD --strip --psf1 tsans08.psf | psf2inc > tsans08.inc
+psfxform --codepage=AMSTRAD --strip --psf1 tsans14.psf | psf2inc > tsans14.inc
+psfxform --codepage=AMSTRAD --strip --psf1 tsans16.psf | psf2inc > tsans16.inc

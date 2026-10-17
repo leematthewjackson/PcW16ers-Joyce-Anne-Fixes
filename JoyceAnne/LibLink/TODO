@@ -1,0 +1,44 @@
+LocoLink TODOs:
+
+Testing combinations:
+- pcem v3 to PCW server through llmonitor: 	| OK
+- pcem v3 to PCW server directly:		| OK
+- pcem v3 to native server through llmonitor: 	| OK
+- pcem v3 to native server directly:		| OK
+- pcem v2 to PCW server through llmonitor: 	| OK
+- pcem v2 to PCW server directly:		| OK
+- pcem v2 to native server through llmonitor: 	| OK
+- pcem v2 to native server directly: 		| OK
+- anne v3 to PCW server through llmonitor: 	| OK } May need to make delay
+- anne v3 to PCW server directly:		| OK } a tuneable parameter
+- anne v3 to native server through llmonitor: 	| 
+- anne v3 to native server directly: 		| OK
+- llclient v1 to pcem: 				| Connects, doesn't do a lot 
+- llclient v2 to PCW server directly:		| OK
+- llclient v2 to PCW server through llmonitor:	| OK
+- llclient v3 to PCW server directly:		| OK
+- llclient v3 to PCW server through llmonitor:	| OK
+- llclient to real PCW v2: 			| OK
+- llclient to real PCW v3: 			| OK
+
+* pcem v2 lockup after file copy: The 'good' trace does a DOS_FILETIME to get
+ the file stamp, followed by a DOS_READ. The 'bad' trace does a DOS_FILETIME
+ but doesn't seem to get as far as the DOS_READ; it either does a DOS_CLOSE 
+ or just hangs straight away.
+
+* Rewrite server with knowledge gained from developing client. In particular,
+ CWD stuff can be dumped since all paths should be absolute.
+
+* Try and llmonitor Loco2 against PCW server.
+* Test client against live servers!
+
+! Have had to monkey with the laplink cable bit assignment again, so need
+  to recheck with physical hardware.
+
+* Check the test client can connect to a real PCW and transmit / receive 
+ packets.
+
+
+
+
+* Allow v1 server access through PCW serial port?

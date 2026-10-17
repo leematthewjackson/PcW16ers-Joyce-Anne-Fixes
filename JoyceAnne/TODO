@@ -1,0 +1,77 @@
+TO BE DONE:
+
+* libgsx integration. May want to consider removing SDSDL and rerouting 
+	 DDJOYCE through libgsx. Fewer fill patterns but better conformance in 
+	 other respects.
+
+* Update SdSDL to use the one from QDAE.
+
+* Need either a FASTCRT for ANNE, or a way to bypass it.
+* FASTCRT: 
+	- Basic output path (drawing character bitmaps on the screen) seems
+	 to work.
+	- Add in CRTPLUS fancies
+		+f -f	Flashing cursor		Not implemented
+		+Y	Set unscaled position	OK? 
+		+X	Set unscaled window
+	- Paint status line - "Drive is A:" message and ?clock
+	- Work out how to integrate it with CP/M. Options are:
+		** Separate device, UC1 -- UC1.FID	works
+		** Take over CRT        -- JFASTCRT.FID	works
+		** Take over CRT (Old World CP/M)
+
+* TTY.FID for accessing the host console
+
+* Random ANNE crash reporting malloc corruption. Currently trying to use 
+ valgrind to explore the issue.
+
+* For JOYCE 3.0: 8086 mode -- something like a Tube host/parasite system, 
+ with a small program running on the Z80 communicating (using EDFE) with 
+ a headless 8086 emulator. Also have a similar one with a Z80 second
+ processor and its own 64k. Try to make these things reasonably 
+ self-contained -- I may want them outside JOYCE!
+
+	> X86 guest with CP/M-86 1.1 appears to be stable.
+
+		There seems to be a possible data loss issue with native
+		drives. Part of LINK86.CMD full of E5 E5 E5. Need to port
+		DU89 to CP/M-86 to diagnose.
+
+	> Z80 guest with CP/M 2.2: Hook up timer interrupt?
+
+	> 68K guest not attempted (OK, that's really pushing it; but the
+	  68000 core from Hatari may be a good place to start).
+
+	> Port IMPORT and EXPORT to CP/M-86.
+	> Need to get a working ANNEDRV.FID if possible.
+	> ANNE still hangs on Help | Index!
+
+* PTY driver for serial ports.
+
+* Onscreen keyboard.
+
+* xanne: Does not appear to emulate ] on my current keyboard.
+
+* Crash in PCW16 setup routine. Very odd.
+
+* Fix the UI font. We need 'tick' and ' ' instead of 'filled bullet' and 
+ 'hollow bullet'. And the black rectangle is too big.
+
+* On OS X:
+	-- xanne: Menu key does not operate, requiring full-screen program
+	  to be killed. SDL problem; SDL reports it as 'unknown key' with
+	  scancode 110.
+	-- Not real Mac OS X programs; no icons, bundles...
+
+* GSX palette funnies on the Windows version; seems to need the GSX palette
+ to be set explicitly.
+
+* Builtin debugger.
+
+* File chooser: 
+	> Specialised file chooser for DSK files?
+
+* Pictures in the menus.
+
+* Add scrollbar to scrolling lists.
+* Sort lists of files.

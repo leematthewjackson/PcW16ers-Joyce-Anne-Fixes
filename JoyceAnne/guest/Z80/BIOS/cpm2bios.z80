@@ -1,0 +1,763 @@
+;
+;    JOYCE v2.5.0 - Amstrad PCW emulator
+;
+;    Copyright (C) 1996, 2001-2, 2022  John Elliott <seasip.webmaster@gmail.com>
+;
+;    This program is free software; you can redistribute it and/or modify
+;    it under the terms of the GNU General Public License as published by
+;    the Free Software Foundation; either version 2 of the License, or
+;    (at your option) any later version.
+;
+;    This program is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU General Public License for more details.
+;
+;    You should have received a copy of the GNU General Public License along
+;    with this program; if not, write to the Free Software Foundation, Inc.,
+;    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+;
+;==========================================================================
+; BIOS for CP/M v2.2 in JOYCE guest environment
+;==========================================================================
+;
+IOBYTE	equ	3	;Address of IOBYTE
+CDISK	equ	4	;Address of current drive
+
+CR	equ	0Dh
+LF	equ	0Ah
+
+;I/O ports
+MEMBANK	equ	0ABh	;Current memory bank
+MEMFROM	equ	0ACh	;Memory bank to copy from
+MEMTO	equ	0ADh	;Memory bank to copy to
+EMU_DRV	equ	0AEh	;Emulated drives bitmap
+LOADCCP	equ	0B0h	;Load BIOS and CCP
+EMU_SD	equ	0B1h	;SELDSK
+EMU_RD	equ	0B2h	;READ
+EMU_WR	equ	0B3h	;WRITE
+EMU_UC1	equ	0B4h	;Fast console output
+
+; Memory banks
+HOSTTPA	equ	0FFh	;Host system TPA
+HOSTSCR	equ	0FEh	;Host screen
+GUESTTPA equ	1	;Guest system TPA
+
+	org	0E600h
+BDOS	equ	$-3584
+CCP	equ	BDOS-2048
+BIOS_STK equ	0FFFEh
+
+	jp	BOOT
+WBOOT0:	jp	WBOOT
+	jp	CONST
+	jp	CONIN
+	jp	CONOUT
+	jp	LIST
+	jp	PUNCH
+	jp	READER
+	jp	HOME
+	jp	SELDSK
+	jp	SETTRK
+	jp	SETSEC
+	jp	SETDMA
+	jp	READ
+	jp	WRITE
+	jp	LISTST
+	jp	SECTRAN
+	jp	CONOST
+	jp	AUXIST
+	jp	AUXOST
+	jp	0	;DEVTBL
+	jp	0	;DEVINI
+	jp	DRVTBL
+	jp	0	;MULTIO
+	jp	0	;FLUSH
+	jp	MOVE
+	jp	0	;TIME
+	jp	SELMEM
+	jp	SETBNK
+	jp	XMOVE
+	jp	0	;USERF
+	jp	0	;RESERV1
+	jp	0	;RESERV2
+	rst	0	;ANNE BCTL
+buffer:	defw	0	;Transfer buffer address
+	jp	service	;Call to the host
+	defb	'JOYCE',1,0
+;
+biostop:
+	defw	dirbuf+100h	;From biostop to FFFF is free.
+;
+;
+; Disk Parameter Headers for up to 16 drives
+;
+alldrv:	dw	dph_a
+	dw	dph_b
+	dw	dph_c
+	dw	dph_d
+	dw	dph_e
+	dw	dph_f
+	dw	dph_g
+	dw	dph_h
+	dw	dph_i
+	dw	dph_j
+	dw	dph_k
+	dw	dph_l
+	dw	dph_m
+	dw	dph_n
+	dw	dph_o
+	dw	dph_p
+;
+dph_a:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_a
+	dw	csv_a
+	dw	alv_a
+dph_b:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_b
+	dw	csv_b
+	dw	alv_b
+dph_c:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_c
+	dw	csv_c
+	dw	alv_c
+dph_d:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_d
+	dw	csv_d
+	dw	alv_d
+dph_e:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_e
+	dw	csv_e
+	dw	alv_e
+dph_f:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_f
+	dw	csv_f
+	dw	alv_f
+dph_g:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_g
+	dw	csv_g
+	dw	alv_g
+dph_h:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_h
+	dw	csv_h
+	dw	alv_h
+dph_i:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_i
+	dw	csv_i
+	dw	alv_i
+dph_j:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_j
+	dw	csv_j
+	dw	alv_j
+dph_k:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_k
+	dw	csv_k
+	dw	alv_k
+dph_l:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_l
+	dw	csv_l
+	dw	alv_l
+dph_m:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_m
+	dw	csv_m
+	dw	alv_m
+dph_n:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_n
+	dw	csv_n
+	dw	alv_n
+dph_o:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_o
+	dw	csv_o
+	dw	alv_o
+dph_p:	dw	0	;XLT
+	dw	0,0,0	;Workspace
+	dw	dirbuf
+	dw	dpb_p
+	dw	csv_p
+	dw	alv_p
+;
+; DPBs for up to 16 drives
+;
+dpb_a:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_b:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_c:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_d:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_e:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_f:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_g:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_h:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_i:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_j:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_k:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_l:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_m:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_n:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_o:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dpb_p:	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+;
+; Allocation vectors for up to 16 drives
+;
+alv_a:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_b:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_c:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_d:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_e:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_f:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_g:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_h:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_i:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_j:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_k:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_l:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_m:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_n:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_o:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+alv_p:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	
+;
+; Checksum vectors for up to 16 drives. The first two overlap the boot code.
+;
+;;csv_a:dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+;;csv_b: dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_c:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_d:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_e:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_f:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_g:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_h:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_i:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_j:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_k:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_l:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_m:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_n:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_o:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+csv_p:	dw	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+xmv:	defb	0	;Next move is between banks?
+xmvbc:	defw	0	;C=source bank B=destination bank
+bios_dma: dw	0
+bios_track:dw	0
+bios_sector:dw	0
+wmode:	dw	0
+
+WBOOT:	ld	sp,BIOS_STK
+	ld	a,GUESTTPA	;Select TPA
+	call	SELMEM
+	ld	a,CCP/256	;Load the CCP
+	out	(LOADCCP),a
+stdboot:
+;
+; Patch the A> prompt. 
+;
+	LD	HL,(CCP+0386h)
+	LD	(CCPPATCH+1),HL	;Address of CCP CR/LF routine
+	LD	HL,CCPPATCH
+	LD	(CCP+0386h),HL	;Replace CALL CRLF with CALL CCPPATCH
+
+	ld	a,0C3h
+	ld	(0),a
+	ld	(5),a	;Populate the jumps at 0 and 5.
+	ld	hl,WBOOT0
+	ld	(1),hl
+	ld	hl,BDOS+6
+	ld	(6),hl
+	ld	bc,80h
+	call	SETDMA
+	ld	a,(CDISK)
+	ld	c,a
+	ld	sp,80h
+	jp	CCP
+;
+CONST:	ld	b,0Bh
+	jr	callhost
+
+CONIN:	ld	b,1
+	jr	callhost
+
+CONOUT:	ld	a,(IOBYTE)
+	and	3	;Get CON: assignment
+	cp	3	;Is CON: set to UC1:?
+	ld	b,2
+	jr	nz,callhost
+	ld	a,c	;If so use 'fast' UC1 output
+	out	(EMU_UC1),a
+	ret
+
+LIST:	ld	b,5
+	jr	callhost
+
+PUNCH:	ld	b,4
+	jr	callhost
+
+READER:	ld	b,3
+	jr	callhost
+;
+HOME:	ld	b,0Dh
+	jr	callhost
+;
+LISTST:	ld	b,6
+	jr	callhost
+;
+callhost:
+	push	ix
+	ld	ix,(buffer)
+	ld	a,HOSTTPA
+	out	(MEMBANK),a
+	ld	(ix+1),c	;Parameter
+	ld	(ix+0),b	;Function
+chloop:	ld	a,(ix+0)
+	bit	7,a
+	jr	z,chloop
+	ld	l,(ix+1)
+	ld	h,(ix+2)
+	ld	a,GUESTTPA
+	out	(MEMBANK),a
+	ld	a,l
+	pop	ix
+	ret
+;
+;
+SECTRAN:
+	ld	h,b
+	ld	l,c
+	ret
+
+SELDSK:	push	iy
+	ld	l,c
+	ld	h,0	;HL = drive
+	add	hl,hl
+	ld	de,alldrv
+	add	hl,de
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)	;DE->DPH
+	push	de
+	pop	iy	;IY->DPH
+	ld	e,(iy+10)
+	ld	d,(iy+11)	;DE->DPB
+	in	a,(EMU_SD)
+	or	a
+	jr	z,sdhost
+sdend:	pop	iy
+	ret
+;
+sdhost:
+	push	de
+	ld	b,0Eh		;SELDSK
+	call	callhost	;Execute SELDSK, returns HL = result buf
+	ld	a,h
+	or	l
+	pop	de
+	jr	z,sdend
+; DE -> target DPB
+	push	de
+	ld	hl,(buffer)
+	inc	hl
+	inc	hl
+	inc	hl		;HL -> source DPB
+	ld	bc,0Fh
+	ex	de,hl		;DE->source, HL->target
+	ld	a,HOSTTPA
+	out	(MEMFROM),A
+	ld	a,GUESTTPA
+	out	(MEMTO),A	;Copy the DPB
+	push	iy
+	pop	hl		;HL -> DPH
+	pop	iy		;IY -> DPB
+	res	7,(iy+12)	;Clear the CP/M Plus 'fixed disk' flag
+	pop	iy		;Caller IY	
+	ret	
+;
+SETTRK:	ld	(bios_track),bc
+	ret
+
+SETSEC:	ld	(bios_sector),bc
+	ret
+
+READ:	ld	bc,(bios_track)
+	ld	de,(bios_sector)
+	ld	hl,(bios_dma)
+	in	a,(EMU_RD)
+	or	a
+	jr	z,readhost
+	ld	a,b
+	ret
+;
+readhost:
+	push	ix
+	ld	ix,(buffer)
+	ld	a,HOSTTPA
+	out	(MEMBANK),a
+	ld	(ix+1),c	;Track low
+	ld	(ix+2),b	;Track high
+	ld	(ix+3),e	;Sector low
+	ld	(ix+4),d	;Sector high
+	ld	a,14h		;READ
+	ld	(ix+0),a
+rdloop:	ld	a,(ix+0)
+	bit	7,a
+	jr	z,rdloop
+	ld	a,(ix+1)
+	or	a
+	jr	nz,readend
+;
+; Read worked. Copy from host to guest
+;	
+	ld	de,(buffer)
+	inc	de
+	inc	de
+	ld	hl,(bios_dma)
+	ld	bc,128
+	ld	a,HOSTTPA
+	out	(MEMFROM),a
+	ld	a,GUESTTPA
+	out	(MEMTO),a
+	xor	a
+readend:
+	ld	b,a
+	ld	a,GUESTTPA
+	out	(MEMBANK),a
+	ld	a,b	
+	pop	ix	
+	ret
+;
+WRITE:	push	bc
+	ld	bc,(bios_track)
+	ld	de,(bios_sector)
+	ld	hl,(bios_dma)
+	in	a,(EMU_WR)
+	or	a
+	jr	z,writehost
+	ld	a,d
+	pop	bc
+	ret
+;
+writehost:
+	pop	hl		;L = write mode
+	ld	a,l
+	ld	(wmode),a
+	ld	hl,(buffer)
+	ld	a,HOSTTPA
+	out	(MEMBANK),a
+	ld	a,(wmode)
+	inc	hl
+	ld	(hl),c		;Track low
+	inc	hl
+	ld	(hl),b		;Track high
+	inc	hl
+	ld	(hl),e		;Sector low
+	inc	hl
+	ld	(hl),d		;Sector high
+	inc	hl
+	ld	(hl),a		;Write mode
+	inc	hl
+	ld	de,(bios_dma)
+	ld	bc,128
+	ld	a,GUESTTPA
+	out	(MEMFROM),a
+	ld	a,HOSTTPA
+	out	(MEMTO),a
+	ld	hl,(buffer)
+	ld	a,15h
+	ld	(hl),a
+wrloop: ld	a,(hl)
+	bit	7,a
+	jr	z,wrloop
+	inc	hl
+	ld	b,(hl)
+	ld	a,GUESTTPA
+	out	(MEMBANK),a
+	ld	a,b	
+	ret
+	
+;
+CONOST:
+AUXIST:
+AUXOST:
+	ld	de,stub
+	call	print
+	rst	0
+stub:	defb	'Stub$'
+
+SETDMA:	ld	(bios_dma),bc
+	ret
+
+SELMEM:	out	(MEMBANK),a
+	ret
+
+XMOVE:	ld	a,1
+	ld	(xmv),a
+	ld	(xmvbc),bc	
+	ret
+;
+MOVE:	ld	a,(xmv)
+	or	a
+	jr	nz,move1
+	ex	de,hl
+	ldir
+	ex	de,hl
+	ret
+;
+move1:	xor	a		;Cross-bank memory move
+	ld	(xmv),a
+	ld	a,(xmvbc)	;'From' bank
+	out	(MEMFROM),a
+	ld	a,(xmvbc+1)
+	out	(MEMTO),a	;'To' bank
+	ret
+;
+DRVTBL:	ld	hl,alldrv
+SETBNK: ret
+;
+CCPPATCH:
+	call	0	;CCP CR/LF
+	ld	de,cpm2
+	ld	c,9
+	jp	BDOS+6
+;
+ontimer:
+	ret
+;
+cpm2:	defb	'[CP/M 2] $'
+;
+print:	ld	a,HOSTTPA
+	out	(MEMBANK),a
+	ld	hl,(buffer)
+	push	hl
+	inc	hl
+setmsg:	ld	a,(de)
+	ld	(hl),a
+	inc	hl
+	inc	de
+	cp	'$'
+	jr	nz,setmsg
+	pop	hl
+	ld	(hl),9
+prloop:	ld	a,(hl)
+	bit	7,a
+	jr	z,prloop
+	ld	a,GUESTTPA
+	out	(MEMBANK),a
+	ret
+;
+service:
+	or	a
+	jr	z,service0
+	cp	0E3h
+	jr	z,serviceE3
+	ld	hl,0FFh
+	ld	a,l
+	ld	b,h
+	ret
+;
+service0:
+	ld	b,0
+	jp	callhost
+;
+serviceE3:
+	ld	b,10h
+	call	callhost
+	push	ix
+	ld	ix,(buffer)
+	ld	a,HOSTTPA
+	out	(MEMBANK),a	
+	ld	a,(ix+1)
+	ld	c,(ix+2)
+	ld	b,(ix+3)
+	ld	e,(ix+4)
+	ld	d,(ix+5)
+	ld	l,(ix+6)
+	ld	h,(ix+7)
+	ld	a,GUESTTPA
+	out	(MEMBANK),a
+	pop	ix
+	ret	
+;
+; The last 256 bytes of the BIOS contain boot code; they are overwritten 
+; after boot by the 128-byte DIRBUF and CSV for drives A: and B:
+;
+dirbuf:
+csv_a	equ	dirbuf+128
+csv_b	equ	dirbuf+192
+;
+; Code / data beyond here can be discarded (or reused for buffers) after boot
+;
+banner:	defb	'JOYCE CP/M 2 guest BIOS  51K TPA',CR,LF
+	defb	'Boot drive is '
+bdrv:	defb	'X:',CR,LF
+	defb	'Host drives:  $'
+ldrv:	defb	CR,LF,'Guest drives: $'
+crlf:	defb	CR,LF,'$'
+
+drvemu:	defw	0	;Bitmap of emulated drives
+drvmap: defw	0	;Bitmap of host drives
+
+BOOT:	ld	sp,BIOS_STK
+	in	a,(EMU_DRV)
+	ld	l,a
+	in	a,(EMU_DRV+1)
+	ld	h,a
+	ld	(drvemu),hl
+	ld	a,HOSTTPA
+	call	SELMEM
+	ld	hl,(buffer)
+wait0:	ld	a,(hl)
+	bit	7,a
+	jr	z,wait0
+	ld	b,18h
+	call	callhost	;Gives HL = bitmap of host drives
+	ld	de,(drvemu)
+	ld	a,e		;Mask the bitmap of emulated drives to
+	cpl			;remove host drives
+	and	l
+	ld	l,a
+	ld	a,d
+	cpl
+	and	h
+	ld	h,a
+	ld	(drvmap),hl
+	ld	b,19h		;Get boot drive
+	call	callhost
+	ld	(CDISK),a
+	add	a,'A'
+	ld	(bdrv),a
+	ld	de, banner
+	call	print
+	ld	de,(drvmap)
+	call	showdrvs
+	ld	de,ldrv
+	call	print
+	ld	de,(drvemu)
+	call	showdrvs
+	ld	de,crlf
+	call	print
+	ld	a,GUESTTPA	;Select TPA
+	call	SELMEM
+	ld	a,CCP/256	;Load the CCP
+	out	(LOADCCP),a
+	ld	b,0Ah
+	call	callhost	;Ask for the initial command line
+	ld	hl,CCP+8	;Copy to CCP+8 (COMBUF)
+	push	hl
+	ld	de,(buffer)
+	inc	de
+	ld	bc,80h
+	ld	a,HOSTTPA	;Copy 128 bytes from host to guest
+	out	(MEMFROM),a
+	ld	a,GUESTTPA
+	out	(MEMTO),a
+	pop	hl
+	ld	bc,8000h
+cmdlen:	ld	a,(hl)
+	or	a
+	jr	z,endcmd
+	inc	hl
+	inc	c
+	djnz	cmdlen
+endcmd:
+	ld	a,c
+	ld	(CCP+7),a
+	jp	stdboot
+;
+showdrvs:
+	ld	hl,banner
+	push	hl
+	ld	bc,1041h	;16 drives, first is A:
+showd0:	bit	0,e
+	jr	z,showd1
+	ld	(hl),c
+	inc	hl
+	ld	(hl),':'
+	inc	hl
+	ld	(hl),' '
+	inc	hl
+showd1:	srl	d
+	rr	e
+	inc	c
+	djnz	showd0
+	ld	(hl),'$'
+	pop	de
+	jp	print
+
+	
+	end
+

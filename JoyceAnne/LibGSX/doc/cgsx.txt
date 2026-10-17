@@ -1,0 +1,277 @@
+CGSX v0.1.1                                        John Elliott, 26 March 2025
+==============================================================================
+
+  CGSX is an attempt to implement CP/M GSX graphic drawing capabilities in 
+a reasonably self-contained C library. The intended use case is for CP/M 
+emulators, but of course that doesn't rule out other uses I haven't thought
+of.
+
+  The library is licensed under the MIT licence.
+
+What's new
+==========
+[0.1.1] The PDF backend has been modified to support older versions of libHaru,
+and some variable declarations have been reordered so the library can be 
+compiled by a C89 compiler.
+
+In use
+======
+
+  There are two ways in which the library can be used:
+
+i) As a self-contained GSX implementation (GDOS and GIOS)
+ii) As a collection of GSX drivers (GIOS).
+
+GDOS
+====
+  When using CGSX as a complete GSX implementation, the steps to take are:
+
+1. Create the GDOS using gdos_create(). This will return 0 if succeeded, -1
+  if it failed due to lack of memory.
+
+2. Register one or more devices with the GDOS. This is done using 
+  gdos_register() or gdos_register_raster(). If you register multiple 
+  devices, each one should have its own device number. By convention, device
+  1 is the screen, 11 is the plotter and 21 is the printer. 
+
+   gdos_register() is passed a function that creates an instance of the 
+  required driver when requested. gdos_register_raster() is passed a 
+  pointer to a RASTERSURFACE on which output will be rendered.
+
+3. When you handle a GSX call, extract its arguments into memory arrays 
+  and pass them to gdos_dispatch(). In practice it is safest to 
+  start by populating the contrl array, then call check_contrl() on it
+  before using the array counts in it to populate intin and ptsin. Some 
+  programs that use GSX don't bother to populate the intin array count 
+  for calls where they think it doesn't matter.
+
+4. Once gdos_dispatch() has returned, copy the contrl, intout and ptsout
+  arrays back into the emulator's memory. It is best to copy contrl first,
+  in case it overlaps with the other two.
+
+5. Free the GDOS (if required) with gdos_destroy().
+
+  Note that if you are writing a CP/M-80 emulator that traps BDOS call 73h and
+passes it to gdos_dispatch(), you should remove the GSX-80 GDOS from programs.
+This can be done either manually by removing the first 0x380 bytes of the .COM
+file, or (if you have control of the program loader) by searching for a 
+suitable code signature and automatically skipping the first 0x380 bytes of
+the .COM file if it is found.
+
+GIOS
+====
+  In this scenario, the original GSX-80 GDOS remains, using custom drivers
+that use an emulator trap to pass control to CGSX. DE will hold the address
+of the GSX parameter block.
+
+1. If you are using the raster driver, create a RASTERSURFACE structure 
+  describing the surface it's going to be drawing on. For more detail on 
+  this, see below. If you are using the PDF driver, you will need a 
+  PDFPARAM structure describing the page size and output directory. Both of
+  these structures need to be in existence for at least as long as the GIOS 
+  driver is, so having them as local stack variables is unlikely to work.
+
+2. When your emulator trap is triggered, read the input arrays into memory.
+ As when using gdos_dispatch(), it's safest to read the contrl array, use 
+ check_contrl() to sanitise it, and then load the intin and ptsin arrays.
+
+3. The first call should be number 1, Open Workstation. At this point 
+  (or before) create your driver using the appropriate gios_*_create()
+  function. This will populate a pointer to a GIOSDEVICE. Pass NULL as the
+  first parameter to indicate that there is no GDOS.
+
+4. Call the 'dispatch' function pointer on the GIOS to process the request.
+
+5. When you receive call 2, Close Workstation, call the 'dispatch' function
+  pointer in the usual way, and then the 'destroy' function pointer.
+
+Examples
+========
+  test/gsxtest.c is an example of an implementation using the library's GDOS.
+It's a minimal Z80 emulator providing just enough of the CP/M API to run 
+my CP/M GSX tester, GSXTEST.COM. The BDOS handler (lines 170-228) extracts
+the parameters of the GSX call from Z80 memory, passes them to gdos_dispatch(),
+and copies the results back into Z80 memory.
+
+  sample.zsm is an example of a GSX driver (in this case, targeted at my
+emulator JOYCE) using an emulator trap to hand off to the library's GIOS.
+  
+Driver Implementations
+======================
+
+  This version of CGSX provides two driver implementations:
+
+PDF driver
+----------
+  The PDF driver uses libHaru <https://libharu.org/> to generate its 
+output, so you will need libHaru installed to use it.
+
+  In use, it should be as simple as creating a static PDFPARAM object with 
+the required page size and output directory, and using gios_pdf_create() to
+create a suitable driver (or have the GDOS do it for you).
+
+  Most GSX features are implemented, with the exception of the XOR writing
+mode, which the PDF format does not seem to support.
+
+Raster driver
+-------------
+  The Raster driver is aimed at any output medium comprised of a rectangular 
+grid of pixels -- CRTs, dot-matrix printers, and so on. This is described to
+CGSX by means of a RasterSurface structure. Consequently this driver is not
+standalone in the same way that the PDF one is; it requires a RasterSurface
+to draw on.
+
+  CGSX provides three simple demonstration raster drivers:
+
+* rdev_pbm_create() creates a black and white bitmap of the specified 
+ dimensions. The caller can specify whether it defaults to a white on black 
+ colour scheme (as GSX expects of displays) or black on white (as it expects 
+ of printers). Each page is saved in the (uncompressed, and therefore bulky)
+ Portable Bitmap format.
+
+* rdev_ppm_create() creates a 24-bit colour bitmap. Each page is saved in the
+ (similarly uncompressed and even more bulky) Portable Pixmap format.
+
+* rdev_png_create() creates a 24-bit colour bitmap, as above, but the 
+ resulting images are saved as efficiently compressed PNG files. This 
+ option is only available if libpng and its headers are installed.
+
+  By default, the raster driver also emulates the 'text mode' escape functions,
+by simulating a text mode on the graphical screen. A raster surface that has a
+true text mode will need to handle these functions using its dispatch() entry 
+point below. A raster surface that doesn't support interaction (for example, a
+dot-matrix printer) may well want to handle the functions in order to 
+return error values, as the provided PNG, PBM and PPM drivers do.
+
+  If you are integrating CGSX into an emulator which emulates a bitmap 
+display, the expected use case is that you'd create a RasterSurface structure
+that wraps the emulated display:
+
+void (*destroy)(struct RasterSurface **pself);
+
+	Call this to delete this surface and free any associated memory.
+	Note that the lifespan of a RasterSurface is expected to be longer
+	than the associated GSX driver, just as on a real CP/M computer the
+	same display may persist through several calls to GSX.
+
+int (*dispatch)(struct RasterSurface *self, GIOSDEVICE *caller,
+			gword *contrl, gword *intin, gword *ptsin, 
+			gword *intout, gword *ptsout);
+
+	This allows the raster surface to handle any GSX call before the
+	default implementation in the driver is used. It can be used, for
+	example, to add support for pointing devices, or (if the device has
+	a text mode) implementing escape functions using the text mode.
+
+	It also allows the raster surface to block any functions that should
+	not be implemented. The example output drivers use this to report 
+	that there is no text screen by returning (-1,-1) to GSX function 5
+	subfunction 1. A driver could also block all attempts to remap
+	colours (for example, if it was emulating a monochrome printer) by
+	implenting function 14 as a no-op.
+
+	Return 0 if the function should be handled by the default 
+	implementation, 1 if the function has been handled here.
+
+	If you want to call the default implementation and then perform 
+	additional processing, here's one way to do it:
+
+		/* do initial processing */
+		self->dispatch = NULL;
+		(*caller->dispatch)(caller, contrl, intin, ptsin, intout, ptsout);
+		self->dispatch = dispatchfunc;
+		/* do final processing */
+		return 1;
+
+void (*dimensions)(struct RasterSurface *self, gword *width, gword *height)
+
+	This returns the dimensions of the screen in pixels.
+	
+void (*pixelsize)(struct RasterSurface *self, gword *width, gword *height)
+
+	This returns the size of a pixel in micrometres. It is used for 
+	aspect ratio calculations when drawing shapes like circles.
+
+void (*enter_g)(struct RasterSurface *self)
+
+	If the device has separate text and graphics modes, select the 
+	graphics mode. This function pointer can be left as NULL if the
+	device doesn't have a separate text mode.
+
+void (*exit_g)(struct RasterSurface *self)
+
+	If the device has separate text and graphics modes, select the 
+	graphics mode. This function pointer can be left as NULL if the
+	device doesn't have a separate text mode.
+
+void (*clear)(struct RasterSurface *self, unsigned ink)
+
+	Blank the display / output buffer to the selected colour.
+	
+void (*flush)(struct RasterSurface *self, unsigned ink)
+
+	On a device like a printer, this would finalize the current page and
+	print it. The supplied raster drivers, in a similar way, write the 
+	current image out as a bitmap file and clear the image buffer to 
+	blank. If the display is to be cleared, 'ink' is the value to clear it
+	to. An interactive device like a screen need not do anything here.
+
+unsigned (*getpixel)(struct RasterSurface *self, gword x, gword y)
+
+	Read a pixel from the screen. The value returned is the internal
+	representation of the pixel, defined by the surface. The coordinate
+	system used has the origin at the top left corner of the screen.
+
+void (*setpixel)(struct RasterSurface *self, gword x, gword y, unsigned ink)
+
+	Write a pixel to the screen. Note that the ink value may be outside
+	the range returned by getpixel -- it may have been xor'ed with 
+	another ink, or complemented to try and get an inverse.
+
+unsigned (*has_palette)(struct RasterSurface *self)
+
+	This should report whether the display has palette registers, or a 
+	similar mechanism, that can change the colour of pixels already on 
+	the screen. For example, on the ZX Spectrum colour 1 is always blue
+	and this can't be changed, while on the BBC Micro colour 1 can be 
+	displayed as blue, red, green etc. using the VDU 19 terminal code.
+
+	Return 0 if there is no palette, otherwise the number of palette
+	registers.
+
+unsigned (*max_colours)(struct RasterSurface *self)
+
+	This should return the maximum number of colours that can be 
+	displayed simultaneously. For a monochrome device this would be 2.
+
+void (*get_ink_rgb)(struct RasterSurface *self, unsigned ink, gword *r, 
+	gword *g, gword *b)
+
+	Convert an internal ink value to red/green/blue component values. The
+	values use a scale of 0-1000 (inclusive).
+
+void (*set_ink_rgb)(struct RasterSurface *self, unsigned ink, gword r, 
+	gword g, gword b)
+
+	If the device has palette registers, this is used to set the colour
+	in which an ink is displayed. If the device has a fixed palette this
+	function pointer can be left as null.
+
+unsigned (*closest_rgb)(struct RasterSurface *self, gword r, gword g, gword b)
+
+	Return the internal ink number that's the closest match for the 
+	passed red/green/blue values. 
+
+gword (*count_fonts)(struct RasterSurface *self)
+
+	If the display has one or more native bitmap fonts, this should 
+	return a count of them. If the display doesn't have any native 
+	fonts, this function pointer can be left as null.
+
+int (*select_font)(struct RasterSurface *self, GSXFONT *font)
+
+	Populate the passed GSXFONT structure with the characteristics of
+	the specified font. If the display doesn't have any native 
+	fonts, this function pointer can be left as null.
+
+

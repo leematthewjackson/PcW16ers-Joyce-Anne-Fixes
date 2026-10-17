@@ -1,0 +1,1936 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options false
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 0
+\use_package mathdots 0
+\use_package mathtools 1
+\use_package mhchem 0
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 0
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+LibLink v0.0.3
+\end_layout
+
+\begin_layout Author
+John Elliott
+\end_layout
+
+\begin_layout Abstract
+LibLink is a library intended to support emulation of hardware that is used
+ to communicate with peripherals or other computers.
+ This version contains support for parallel ports and LocoLink.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+LibLink provides a general set of operations for emulating one or more parallel
+ ports (this may be expanded in future to cover other hardware, such as
+ serial ports).
+ Each emulated parallel port can be mapped to:
+\end_layout
+
+\begin_layout Itemize
+A disc file; 
+\end_layout
+
+\begin_layout Itemize
+A one-way pipe to another process; 
+\end_layout
+
+\begin_layout Itemize
+The computer's parallel port (requires Linux 2.4 or later); 
+\end_layout
+
+\begin_layout Itemize
+A two-way connection to another process, either using a U
+\noun on
+nix
+\noun default
+ domain socket or shared memory.
+\end_layout
+
+\begin_layout Itemize
+An emulated LocoLink file server.
+\end_layout
+
+\begin_layout Subsection
+Unidirectional and bidirectional
+\end_layout
+
+\begin_layout Standard
+LibLink only emulates unidirectional parallel ports.
+ It has no bidirectional capability.
+ However, the shared memory and socket drivers (
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+) can emulate both ends of a unidirectional connection; so they can be used
+ to write a program that emulates a printer or other parallel port device.
+ This obviously involves sending signals in both directions, but that doesn't
+ make it bidirectional as the term is usually understood.
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "locolink"
+
+\end_inset
+
+LocoLink
+\end_layout
+
+\begin_layout Standard
+LocoLink is a system by which the expansion port of an Amstrad PCW computer
+ can be connected to the parallel port of another computer.
+ The two then exchange data using four wires of the parallel cable (two
+ in each direction).
+ In LocoLink v1.x, the PCW controls the process while the PC acts as a minimal
+ file server.
+ In version 2.x, the roles are reversed; the PCW shares the contents of a
+ floppy drive, while software on the PC uploads and downloads files.
+\end_layout
+
+\begin_layout Standard
+If the LocoLink cable and interface are replaced with a LapLink cable, then
+ the LocoLink connection can be between any two computers.
+ Because of the pinout of a LapLink cable, the 
+\begin_inset Quotes eld
+\end_inset
+
+PC
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+PCW
+\begin_inset Quotes erd
+\end_inset
+
+ ends have to set different data lines, and different control lines; the
+ 
+\begin_inset Quotes eld
+\end_inset
+
+PC
+\begin_inset Quotes erd
+\end_inset
+
+ uses DATA 0, DATA 1, BUSY and ACK, while the 
+\begin_inset Quotes eld
+\end_inset
+
+PCW
+\begin_inset Quotes erd
+\end_inset
+
+ uses DATA 3, DATA 4, SELECT and ERROR.
+ Thus, when using certain LocoLink functions, it is necessary to specify
+ whether the parallel port is the 
+\begin_inset Quotes eld
+\end_inset
+
+PC
+\begin_inset Quotes erd
+\end_inset
+
+ end or the 
+\begin_inset Quotes eld
+\end_inset
+
+PCW
+\begin_inset Quotes erd
+\end_inset
+
+ end of the link.
+\end_layout
+
+\begin_layout Section
+Driver types
+\end_layout
+
+\begin_layout Subsection
+Output to a file or pipeline
+\end_layout
+
+\begin_layout Standard
+The simplest form of printer emulation is to send the output to a file,
+ or through a pipe to another program.
+ To do this, call ll_open() with the driver name of 
+\begin_inset Quotes eld
+\end_inset
+
+parfile
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+parpipe
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The filename parameter is, respectively, the filename to append to or the
+ program name through which data should be piped.
+\end_layout
+
+\begin_layout Standard
+The Centronics emulation for these two devices is fairly basic.
+ When the STROBE signal goes from low to high (or is it high to low?) the
+ current data byte is appended to the file or pipe.
+\end_layout
+
+\begin_layout Subsection
+Direct parallel port access 
+\end_layout
+
+\begin_layout Standard
+Direct access to the parallel port requires Linux 2.4 with a kernel that
+ supports user-space parallel port device drivers (CONFIG_PPDEV).
+ To use direct access, call ll_open() with the driver name of 
+\begin_inset Quotes eld
+\end_inset
+
+parport
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The filename must be for a parallel port device such as 
+\begin_inset Quotes eld
+\end_inset
+
+/dev/parport0
+\begin_inset Quotes erd
+\end_inset
+
+.
+ If the device is a file or otherwise unsuitable, the error LL_E_NOTDEV
+ will be returned.
+\end_layout
+
+\begin_layout Standard
+The direct parallel port driver supports all data and control lines.
+\end_layout
+
+\begin_layout Subsection
+Communication using shared memory
+\end_layout
+
+\begin_layout Standard
+LibLink supports communication with other instances of LibLink using shared
+ memory.
+\end_layout
+
+\begin_layout Standard
+To open a socket connection, call ll_open() with the driver name of "parsocket".
+ The filename should begin with S: or C: (indicating Server or Client).
+ When setting up the connection, you need to designate one end of it as
+ the server and the other as the client, but unlike with sockets (below)
+ there's no requirement that the server should start before the client.
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "socketcomms"
+
+\end_inset
+
+Communication using sockets
+\end_layout
+
+\begin_layout Standard
+LibLink supports communication with other instances of LibLink using UNIX
+ domain sockets or TCP/IP sockets.
+ In theory you could implement LocoLink over the Internet; but security
+ considerations make this a most unwise thing to do! 
+\end_layout
+
+\begin_layout Standard
+A parallel connection can be client-to-server (eg: computer to printer;
+ the printer acts as a server) or peer-to-peer (eg: one computer to another).
+ Sockets are always client/server, so you (or the ultimate user) have to
+ decide which end of a peer-to-peer connection will be the client, and which
+ the server.
+\end_layout
+
+\begin_layout Standard
+To open a socket connection, call ll_open() with the driver name of "parsocket".
+ The filename consists of three fields, separated by colons.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+"unix:S:/tmp/mysocket" or "tcp:C:localhost:1234"
+\end_layout
+
+\begin_layout Standard
+The first field ("unix") specifies that this is a UNIX domain socket.
+ It could also be 
+\begin_inset Quotes eld
+\end_inset
+
+tcp
+\begin_inset Quotes erd
+\end_inset
+
+ for a TCP/IP socket.
+\end_layout
+
+\begin_layout Standard
+The second field can either be "S" for a server, or "C" for a client.
+ In server mode, a new socket is created that waits for connections; while
+ in client mode, an attempt is made to connect to an existing socket.
+\end_layout
+
+\begin_layout Standard
+The third field is the name of the socket to open.
+ For a UNIX domain socket this is a filename; for a TCP/IP socket, it is
+ of the form 
+\begin_inset Quotes eld
+\end_inset
+
+hostname
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+hostname:port
+\begin_inset Quotes erd
+\end_inset
+
+.
+ If no port number is supplied the default value of 8256 will be used.
+\end_layout
+
+\begin_layout Standard
+Opening a socket in server mode will create a new socket, while in client
+ mode the system will attempt to connect to the socket the server has created.
+\end_layout
+
+\begin_layout Subsection
+LocoLink file server
+\end_layout
+
+\begin_layout Standard
+This emulates a LocoLink interface plugged into the parallel port.
+ The filename provided is the name of a directory; the files within that
+ directory will be exposed as if from the computer at the other end of the
+ LocoLink connection.
+\end_layout
+
+\begin_layout Section
+Function reference
+\end_layout
+
+\begin_layout Subsection
+Basic I/O functions
+\end_layout
+
+\begin_layout Subsubsection
+ll_open
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_open(LL_PDEV *self, const char *filename, const char *devtype);
+\end_layout
+
+\begin_layout Standard
+This function opens an emulated parallel port.
+ 
+\end_layout
+
+\begin_layout Description
+self: a pointer to an LL_PDEV variable, which will serve as a handle to
+ the requested port.
+\end_layout
+
+\begin_layout Description
+filename: is the name of the port to open.
+ The exact meaning of this string depends on what type of port is being
+ opened.
+ It can be one of:
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parfile
+\begin_inset Quotes erd
+\end_inset
+
+ - Emulate a parallel port by appending to a text file.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+filename
+\begin_inset Quotes erd
+\end_inset
+
+ is the name of the file to which the data will be appended.
+\end_layout
+
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parpipe
+\begin_inset Quotes erd
+\end_inset
+
+ - Data will be sent to a program through a U
+\noun on
+nix
+\noun default
+ pipeline.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+filename
+\begin_inset Quotes erd
+\end_inset
+
+ is the name of the program that will process the output.
+ For example, if the filename is 
+\begin_inset Quotes eld
+\end_inset
+
+/usr/bin/lpr
+\begin_inset Quotes erd
+\end_inset
+
+, output will be sent to the default printer queue.
+\end_layout
+
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parport
+\begin_inset Quotes erd
+\end_inset
+
+ - On Linux 2.4, opens the specified parallel port device for raw access.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+filename
+\begin_inset Quotes erd
+\end_inset
+
+ must be 
+\begin_inset Quotes eld
+\end_inset
+
+/dev/parport0
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+/dev/parport1
+\begin_inset Quotes erd
+\end_inset
+
+, etc.
+\end_layout
+
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ - Emulate a parallel port using shared memory.
+ The filename should start 
+\begin_inset Quotes eld
+\end_inset
+
+S:
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+C:
+\begin_inset Quotes erd
+\end_inset
+
+ (for 'Server' or 'Client') followed by the name of the shared memory object
+ to use.
+ For example, 
+\begin_inset Quotes eld
+\end_inset
+
+S:locolink
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ - Emulate a parallel port using 
+\noun on
+Unix 
+\noun default
+domain sockets or TCP/IP sockets.
+ For the full syntax of the filename to use, see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "socketcomms"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+\begin_inset Quotes eld
+\end_inset
+
+parllserv
+\begin_inset Quotes erd
+\end_inset
+
+ - Emulate a LocoLink server.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+filename
+\begin_inset Quotes erd
+\end_inset
+
+ is the name of a directory containing the files that the server will export.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+ll_close
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_close(LL_PDEV *self);
+\end_layout
+
+\begin_layout Standard
+Closes and releases a parallel port.
+ 
+\end_layout
+
+\begin_layout Description
+self: must point to an opened LibLink handle, which will be set to NULL
+ once it has been closed.
+\end_layout
+
+\begin_layout Subsubsection
+ll_flush
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_flush(LL_PDEV self);
+\end_layout
+
+\begin_layout Standard
+Some of the emulated ports store bytes in an internal buffer; for example,
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+parfile
+\begin_inset Quotes erd
+\end_inset
+
+ driver uses the buffered file I/O functions of the standard I/O library.
+ Call this function to ensure that all bytes have been written.
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+\end_layout
+
+\begin_layout Subsubsection
+\begin_inset CommandInset label
+LatexCommand label
+name "ll_rctl_poll"
+
+\end_inset
+
+ll_rctl_poll, ll_rctl_wait
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_rctl_poll(LL_PDEV self, unsigned  *value);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_rctl_wait(LL_PDEV self, unsigned  *value);
+\end_layout
+
+\begin_layout Standard
+These functions both attempt to read the parallel port's control lines,
+ and return their current values in 'value'.
+ The difference between them is that ll_rctl_poll() always returns immediately,
+ while ll_rctl_wait() waits until 
+\begin_inset Quotes eld
+\end_inset
+
+something interesting
+\begin_inset Quotes erd
+\end_inset
+
+ happens.
+ The obvious interesting thing is that the control lines change; but the
+ driver might find something else interesting; for example, the 
+\begin_inset Quotes eld
+\end_inset
+
+llparsocket
+\begin_inset Quotes erd
+\end_inset
+
+ driver finds it equally interesting if the data lines change.
+ 
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+value: points to an unsigned integer that will receive the state of the
+ control lines.
+\end_layout
+
+\begin_layout Standard
+The data signals that you can test for are:
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_BUSY     256     /* BUSY */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_ACK      512     /* ACK */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_NOPAPER 1024     /* NO PAPER */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_ISELECT 2048     /* SELECT */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_ERROR   4096     /* ERROR */
+\end_layout
+
+\begin_layout Standard
+In addition, if you are implenting the 'printer' end of a connection, you
+ may receive these signals sent by the 'computer' end:
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_STROBE     1     /* STROBE */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_AUFEED     2     /* AUTO FEED XT */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_OSELECT    4     /* SELECT */
+\end_layout
+
+\begin_layout LyX-Code
+#define LL_CTL_INIT       8     /* INIT */
+\end_layout
+
+\begin_layout Standard
+Note that within LibLink, all control signals are treated as active high.
+ This can lead to confusion, particularly with BUSY, ERROR and ACK, if you
+ are used to the PC parallel port interface at a hardware level; in the
+ value read by the PC from the status register, these three are active low.
+ Even more confusingly, on the physical cable BUSY and ERROR are active
+ high, ACK is active low.
+\end_layout
+
+\begin_layout Subsubsection
+ll_recv_poll, ll_recv_wait
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_recv_poll(LL_PDEV self, unsigned char *value);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_recv_wait(LL_PDEV self, unsigned char *value);
+\end_layout
+
+\begin_layout Standard
+These functions attempt to read the data lines of the parallel port.
+ They are only implemented in the 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ drivers, for an emulated printer to read the bytes it is being sent.
+ The other three drivers return LL_E_NOTIMPL.
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+value: points to a byte that will receive the state of the data lines.
+ 
+\end_layout
+
+\begin_layout Subsubsection
+ll_sctl
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_sctl(LL_PDEV self, unsigned ctl);
+\end_layout
+
+\begin_layout Standard
+Set the control lines.
+ The bits in the 
+\begin_inset Quotes eld
+\end_inset
+
+ctl
+\begin_inset Quotes erd
+\end_inset
+
+ byte are defined in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "ll_rctl_poll"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+ctl: The values to which the control lines are to be set.
+\end_layout
+
+\begin_layout Subsubsection
+ll_send
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_send(LL_PDEV self, unsigned char data);
+\end_layout
+
+\begin_layout Standard
+Set the data lines.
+ 
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+data: The values to which the data lines are to be set.
+\end_layout
+
+\begin_layout Subsubsection
+ll_sdctl
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_sdctl(LL_PDEV self, unsigned char data, unsigned ctl);
+\end_layout
+
+\begin_layout Standard
+Set the data and control lines at the same time.
+ The bits in the 
+\begin_inset Quotes eld
+\end_inset
+
+ctl
+\begin_inset Quotes erd
+\end_inset
+
+ byte are defined in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "ll_rctl_poll"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+data: The values to which the data lines are to be set.
+\end_layout
+
+\begin_layout Description
+ctl: The values to which the control lines are to be set.
+\end_layout
+
+\begin_layout Subsubsection
+ll_sctl_get, ll_sdata_get
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_sctl_get(LL_PDEV self, unsigned *ctl);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_gdata_get(LL_PDEV self, unsigned char *data);
+\end_layout
+
+\begin_layout Standard
+These functions return the last values written to the data and control lines.
+ This can be useful if (for example) you just want to toggle one line and
+ leave the rest unchanged.
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ 
+\end_layout
+
+\begin_layout Description
+data: Will receive the last byte written to the data lines.
+\end_layout
+
+\begin_layout Description
+ctl: Will receive the last values written to the control lines.
+\end_layout
+
+\begin_layout Subsubsection
+ll_set_cable, ll_get_cable
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_set_cable(LL_PDEV self, LL_CABLE cable);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_get_cable(LL_PDEV self, LL_CABLE *cable);
+\end_layout
+
+\begin_layout Standard
+These functions only really make sense on a 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ connection, although they can be called for all connection types.
+ What they do is set the type of cable that connects the two ends.
+ On a 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ connection, setting the cable type sets it for both ends.
+\end_layout
+
+\begin_layout Standard
+Parameters are:
+\end_layout
+
+\begin_layout Description
+self: an open LibLink connection.
+ It only makes sense to do this for the 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+parshm
+\begin_inset Quotes erd
+\end_inset
+
+ drivers; the 
+\begin_inset Quotes eld
+\end_inset
+
+parport
+\begin_inset Quotes erd
+\end_inset
+
+ driver uses a real cable rather than an emulated one, and it isn't possible
+ to have a meaningful LapLink conversation with a file or pipeline.
+ 
+\end_layout
+
+\begin_layout Description
+cable: LL_CABLE_NORMAL for a normal cable, or LL_CABLE_LAPLINK for a LapLink
+ crossover cable.
+\end_layout
+
+\begin_layout Standard
+When a cable of type LapLink is selected, writing to the data lines also
+ sets the incoming control lines at the other end.
+\end_layout
+
+\begin_layout Subsection
+LocoLink helper functions
+\end_layout
+
+\begin_layout Subsubsection
+ll_lrecv_poll, ll_lrecv_wait, ll_lsend
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_lrecv_poll(LL_PDEV self, LL_END end, unsigned char *v);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_lrecv_wait(LL_PDEV self, LL_END end, unsigned char *v);
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_lsend(LL_PDEV self, int master, unsigned char v);
+\end_layout
+
+\begin_layout Standard
+These functions are helper functions, which convert the two-bit numbers
+ used in LocoLink conversations to/from the combinations of data and control
+ line signals used by an actual LocoLink connection.
+ The parameters for this function are:
+\end_layout
+
+\begin_layout Description
+end: Pass LL_END_PCW if this end of the connection is acting as the PCW,
+ LL_END_PC if it is the PC.
+ See section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "locolink"
+
+\end_inset
+
+ for an explanation of why the 
+\begin_inset Quotes eld
+\end_inset
+
+PCW
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+PC
+\begin_inset Quotes erd
+\end_inset
+
+ in a LocoLink connection behave differently.
+\end_layout
+
+\begin_layout Description
+v: either a pointer to the byte being received, or the byte being sent.
+ 
+\end_layout
+
+\begin_layout Standard
+Note that these functions are only convenience functions.
+ It isn't 
+\emph on
+necessary
+\emph default
+ to use them to emulate a LocoLink connection.
+\end_layout
+
+\begin_layout Subsubsection
+ll_parlink_*
+\end_layout
+
+\begin_layout Standard
+The ll_parlink_*() group of functions are helper functions for writing a
+ LocoLink server attached to a parallel port (including the 
+\begin_inset Quotes eld
+\end_inset
+
+llparserv
+\begin_inset Quotes erd
+\end_inset
+
+ device).
+ They implement the low-level LocoLink protocol, converting the activity
+ on the data / control lines into packets of bytes, and vice versa.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_parlink_create(LL_PPLINK *pself, LL_PCALLBACK callback, void
+ *cookie);
+\end_layout
+
+\begin_layout Standard
+Creates the link object.
+ The callback parameter will be called when the link has assembled a complete
+ packet, and should return an appropriate response packet.
+ The 'cookie' is stored, and will be passed unchanged to the callback function.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_parlink_close(LL_PPLINK *pself);
+\end_layout
+
+\begin_layout Standard
+Shuts down the link.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_parlink_reset(LL_PPLINK pself);
+\end_layout
+
+\begin_layout Standard
+Resets the parser to the 'idle' state (waiting to transmit a packet), throwing
+ away any part-transmitted or part-received packet.
+ Used internally if an unexpected value is received.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_parlink_write(LL_PPLINK pself, unsigned char value);
+\end_layout
+
+\begin_layout Standard
+The host system writes a value.
+ The value is 0-3, as if written by a PCW to its LocoLink interface.
+ The caller will need to convert from whichever combination of data or control
+ lines provide these signals.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_parlink_read(LL_PPLINK pself, unsigned char *value);
+\end_layout
+
+\begin_layout Standard
+The host system polls for input.
+ The value returned is 0-3, as if received by a PCW on its LocoLink interface.
+ The caller will need to convert this to whichever combination of data and
+ control lines apply to it.
+\end_layout
+
+\begin_layout LyX-Code
+unsigned short ll_parlink_crc(unsigned char *packet);
+\end_layout
+
+\begin_layout Standard
+Calculates the CRC of a LocoLink packet.
+ The first byte of the packet is the type, and the second is the length
+ of the payload.
+ Thus the maximum size of a packet is 259 bytes (type + length + 255 bytes
+ payload + 2 bytes CRC) and this should be reflected in the size of the
+ array passed in.
+\end_layout
+
+\begin_layout Subsubsection
+LocoLink client
+\end_layout
+
+\begin_layout Standard
+The llc_*() functions are wrappers for remote procedure calls over LocoLink.
+ Most of the functions are only supported by the PCW servers supplied with
+ LocoLink 2.x or 3.x; the PC server supplied with LocoLink 1.x is very limited
+ indeed.
+\end_layout
+
+\begin_layout Standard
+Most of these functions have an 'unsigned short *result' parameter.
+ If the return was LL_E_FAIL, then *result will contain an MSDOS-compatible
+ error code (see the Interrupt List for INT 21h / AH = 59h).
+ If the return was LL_E_OK, then the value in *result is function-specific.
+\end_layout
+
+\begin_layout Standard
+The existing PCW servers require all passed filenames to be absolute paths
+ (for example, 
+\begin_inset Quotes eld
+\end_inset
+
+A:
+\backslash
+DOCUMENT.TXT
+\begin_inset Quotes erd
+\end_inset
+
+ rather than just 
+\begin_inset Quotes eld
+\end_inset
+
+DOCUMENT.TXT
+\begin_inset Quotes erd
+\end_inset
+
+).
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_connect(LL_PDEV device, LL_END end, const char *client_desc,
+ LL_PROTOCOL protocol, LL_PREMOTE *premote, char *server_desc);
+\end_layout
+
+\begin_layout Standard
+Connect to a LocoLink server.
+ The parameters are:
+\end_layout
+
+\begin_layout Description
+premote Will be initialised with a pointer to the remote session.
+\end_layout
+
+\begin_layout Description
+device The LibLink device on which the server is – for example, a real parallel
+ port with a LocoLink cable plugged into it, a socket being served by the
+ JOYCE emulator, or the internal LocoLink server.
+\end_layout
+
+\begin_layout Description
+end Which end of the LocoLink conection to emulate.
+ Usually this would be LL_END_PCW when connecting to a LocoLink 1.x server,
+ and LL_END_PC in all other cases.
+\end_layout
+
+\begin_layout Description
+client_desc Up to 30 characters giving the name of the client program.
+ This may be displayed on the server's screen.
+\end_layout
+
+\begin_layout Description
+protocol Which version of the LocoLink protocol to use.
+ If you pass NO_PROTOCOL, llc_connect() will attempt to connect with each
+ known protocol version in turn, stopping when it finds one that is accepted.
+\end_layout
+
+\begin_layout Description
+server_desc Will be set to a string containing the server description (if
+ one was supplied) or blank otherwise.
+ You should allow space for at least 30 characters plus a terminating null.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_hangup(LL_PREMOTE *premote);
+\end_layout
+
+\begin_layout Standard
+Sends a 'hangup' packet informing the server that the session is over, and
+ frees any local resources.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_get_end (LL_PREMOTE remote, LL_END *end); 
+\end_layout
+
+\begin_layout Standard
+Returns the 'end' parameter that was passed to llc_connect().
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_get_protocol(LL_PREMOTE remote, LL_PROTOCOL *proto);
+\end_layout
+
+\begin_layout Standard
+Returns the protocol version that was specified / detected when the connection
+ was made.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_set_ping_callback(LL_PREMOTE remote, LL_PING_CALLBACK cbk);
+\end_layout
+
+\begin_layout Standard
+If the server is performing a lengthy operation, it may send 'Ping' messages
+ back to the client to ensure it doesn't close the connection and time out.
+ This sets a callback that will be called when such a message is received.
+ The callback will be called with the 'busy' parameter set to 1 (lengthy
+ operation in progress) or 0 (operation has finished).
+ It should return 0 to continue processing, 1 to abort the operation.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_get_ping_callback(LL_PREMOTE remote, LL_PING_CALLBACK *cbk);
+\end_layout
+
+\begin_layout Standard
+Get the address of the callback function set by llc_set_ping_callback().
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_resetdisks(LL_PREMOTE premote, int mode, unsigned short *result);
+ 
+\end_layout
+
+\begin_layout Standard
+Logs out all disk drives on the server – used when a disk may have been
+ changed.
+\end_layout
+
+\begin_layout Description
+mode is used only on LocoLink 3.x connections.
+ It is 0 to present the disk as a CP/M disk, nonzero as a LocoScript disk.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_seldrive(LL_PREMOTE premote, unsigned char drive, unsigned
+ short *result); 
+\end_layout
+
+\begin_layout Standard
+Select which drive to use on the server.
+ LocoLink 2.02 ignores the drive number parameter, since the drive is manually
+ selected on the server.
+\end_layout
+
+\begin_layout Standard
+If successful, *result returns the number of drives on the server.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_findlabel(LL_PREMOTE premote, unsigned char *label, unsigned
+ short *result); 
+\end_layout
+
+\begin_layout Standard
+Get the drive label, if there is one.
+ If it is present, the label will be written to the memory at 'label' in
+ the form of an MS-DOS extended FCB – so the filename is at FCB+8 and is
+ 11 bytes long.
+ *result will be 0 if a label was present, nonzero if not.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Bug:
+\emph default
+ LocoLink 3.00 always returns a 
+\begin_inset Quotes eld
+\end_inset
+
+Drive not ready
+\begin_inset Quotes erd
+\end_inset
+
+ error for this function.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_dellabel(LL_PREMOTE premote, unsigned short *result); 
+\end_layout
+
+\begin_layout Standard
+Delete any drive label.
+ Returns 0 if successful, nonzero if not.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Bug:
+\emph default
+ LocoLink 3.00 always returns a 
+\begin_inset Quotes eld
+\end_inset
+
+Drive not ready
+\begin_inset Quotes erd
+\end_inset
+
+ error for this function.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_makelabel(LL_PREMOTE premote, const char *label, unsigned
+ short *result); 
+\end_layout
+
+\begin_layout Standard
+Set the drive label (if it does not already exist).
+ 'label' is the new label (as a text string, eg 
+\begin_inset Quotes eld
+\end_inset
+
+documents.2
+\begin_inset Quotes erd
+\end_inset
+
+).
+ *result will be 0 if successful, nonzero if not.
+ Follow this with a call to llc_closelabel().
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Bug:
+\emph default
+ LocoLink 3.00 always returns a 
+\begin_inset Quotes eld
+\end_inset
+
+Drive not ready
+\begin_inset Quotes erd
+\end_inset
+
+ error for this function.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_closelabel(LL_PREMOTE premote, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Close a newly-created drive label.
+ *result will be 0 if successful, nonzero if not.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_renlabel(LL_PREMOTE premote, const char *label, const char
+ *newname, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Rename an existing drive label.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+label
+\begin_inset Quotes erd
+\end_inset
+
+ is the old name, 
+\begin_inset Quotes eld
+\end_inset
+
+newname
+\begin_inset Quotes erd
+\end_inset
+
+ the new (both as text strings).
+ *result will be 0 if successful, nonzero if not.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+Bug:
+\emph default
+ LocoLink 3.00 always returns a 
+\begin_inset Quotes eld
+\end_inset
+
+Drive not ready
+\begin_inset Quotes erd
+\end_inset
+
+ error for this function.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_getfreespace(LL_PREMOTE self, unsigned char drive, unsigned
+ short *sectors_per_cluster, unsigned short *free_clusters, unsigned short
+ *bytes_per_sector, unsigned short *total_clusters);
+\end_layout
+
+\begin_layout Standard
+Get free space on the specified drive (you should always pass drive=0 for
+ the current drive).
+ If successful returns filesystem statistics.
+ If result was LL_E_FAIL, then the 'sectors per cluster' value holds the
+ DOS error.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_mkdir(LL_PREMOTE self, const char *path, unsigned short *result);
+ 
+\end_layout
+
+\begin_layout Standard
+Create a directory on the server.
+ 'path' is the pathname of the new directory.
+ On a PCW server this call will always fail as CP/M user areas cannot be
+ created or destroyed.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_rmdir(LL_PREMOTE self, const char *path, unsigned short *result);
+ 
+\end_layout
+
+\begin_layout Standard
+Remove a directory on the server.
+ 'path' is the pathname of the directory to remove.
+ On a PCW server this call will always fail as CP/M user areas cannot be
+ created or destroyed.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_chdir(LL_PREMOTE self, const char *path, unsigned short *result);
+ 
+\end_layout
+
+\begin_layout Standard
+Set the current working directory.
+ Since PCW servers require all paths to be absolute, the current working
+ directory is not used; it will be returned by llc_getcwd() but does not
+ affect the operation of any other functions.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_creat(LL_PREMOTE self, unsigned filesize, unsigned short
+ attr, const char *path, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Create a file for output.
+ 'filesize' is the projected file size (used by LocoLink v1 only).
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_openfile(LL_PREMOTE self, unsigned short attr, const char
+ *path, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Open an existing file.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_closefile(LL_PREMOTE self, unsigned short handle, unsigned
+ short *result);
+\end_layout
+
+\begin_layout Standard
+Close a file opened by llc_creat(), llc_ccreat() or llc_openfile().
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_read(LL_PREMOTE self, unsigned short handle, void *data,
+ size_t len, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Read from an open file.
+ If successful, *result will be set to the number of bytes actually read.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_write(LL_PREMOTE self, unsigned short handle, const void
+ *data, size_t len, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Write to an open file.
+ If successful, *result will be set to the number of bytes actually written.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_unlink(LL_PREMOTE self, const char *path, unsigned short
+ *result); 
+\end_layout
+
+\begin_layout Standard
+Remove a file on the server.
+ 'path' is the pathname of the file to remove.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_lseek(LL_PREMOTE self, unsigned short handle, long offset,
+ unsigned char whence, long *result);
+\end_layout
+
+\begin_layout Standard
+Set file pointer.
+ 'Whence' is 0 for start of file, 1 for current position, 2 for end of file.
+ Returns the new position.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_getattr(LL_PREMOTE self, const char *path, unsigned short
+ *result, unsigned short *attr);
+\end_layout
+
+\begin_layout Standard
+Get file attributes into 'attr'.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_chmod(LL_PREMOTE self, const char *path, unsigned short *attr,
+ unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Set file attributes to 'attr'.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_getdevinfo(LL_PREMOTE self, unsigned short handle, unsigned
+ short *result);
+\end_layout
+
+\begin_layout Standard
+Get the device attributes for the open file 'handle' (cf INT 21h / AX=4400h).
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_getcwd(LL_PREMOTE premote, unsigned char drive, char *cwd,
+ unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Get the current working directory.
+ As noted above the 'current working directory' is not used by any of the
+ other file access functions.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_findfirst(LL_PREMOTE premote, const char *path, unsigned
+ short attr, unsigned char *ffblk, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Find the first file matching the supplied name.
+ If successful, bytes 0x15 onward of ffblk will be populated with the results,
+ as for INT 21h / AH=4Eh.
+ Bytes 0x00-0x14 of ffblk may contain internal state.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_findnext(LL_PREMOTE premote, unsigned char *ffblk, unsigned
+ short *result);
+\end_layout
+
+\begin_layout Standard
+Find the next file.
+ The ffblk used should be the one returned from a previous llc_findfirst()
+ call.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_rename(LL_PREMOTE self, const char *from, const char *to,
+ unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Rename a file.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_getfiletime(LL_PREMOTE self, unsigned short handle, unsigned
+ short *result, unsigned short *tm, unsigned short *dt);
+\end_layout
+
+\begin_layout Standard
+Get the time stamp for an open file.
+ The time stamp is returned in DOS format where both the date and time are
+ 16-bit words.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_setfiletime(LL_PREMOTE self, unsigned short handle, unsigned
+ short tm, unsigned short dt, unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Set the time stamp for an open file.
+ The time stamp passed must be in DOS format.
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t llc_ccreat(LL_PREMOTE self, unsigned short attr, const char *path,
+ unsigned short *result);
+\end_layout
+
+\begin_layout Standard
+Create a file if it does not already exist.
+\end_layout
+
+\begin_layout Subsection
+ll_set_fs_callback, ll_get_fs_callback
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_set_fs_callback(LL_PDEV self, LL_FSCALLBACK callback, void
+ *cookie );
+\end_layout
+
+\begin_layout LyX-Code
+ll_error_t ll_get_fs_callback(LL_PDEV self, LL_FSCALLBACK *callback, void
+ **cookie);
+\end_layout
+
+\begin_layout Standard
+These functions are only used by the internal LocoLink server (
+\begin_inset Quotes eld
+\end_inset
+
+llparserv
+\begin_inset Quotes erd
+\end_inset
+
+).
+ If a callback is set, then it will be called whenever the server is asked
+ to create or open a file, or create a directory.
+ The callback should return LL_E_OK if allowed, LL_E_DENIED if not.
+\end_layout
+
+\begin_layout Standard
+The 'cookie' value is stored and passed to the callback function when it
+ is called.
+\end_layout
+
+\begin_layout Subsection
+ll_strerror
+\end_layout
+
+\begin_layout LyX-Code
+const char *ll_strerror(ll_error_t error);
+\end_layout
+
+\begin_layout Standard
+Convert the error code returned by any of the other LibLink functions into
+ a string.
+\end_layout
+
+\begin_layout Description
+error: a LibLink error code.
+\end_layout
+
+\begin_layout Description
+LL_E_OK: No error (OK)
+\end_layout
+
+\begin_layout Description
+LL_E_UNKNOWN: Unknown error
+\end_layout
+
+\begin_layout Description
+LL_E_NOMEM: Out of memory
+\end_layout
+
+\begin_layout Description
+LL_E_BADPTR: Bad pointer passed to LibLink (usually a null pointer)
+\end_layout
+
+\begin_layout Description
+LL_E_SYSERR: System call failed.
+ errno holds the error number.
+\end_layout
+
+\begin_layout Description
+LL_E_EXIST: File already exists (it shouldn't)
+\end_layout
+
+\begin_layout Description
+LL_E_NOMAGIC: File does not contain expected magic number
+\end_layout
+
+\begin_layout Description
+LL_E_CLOSED: The other end of a 
+\begin_inset Quotes eld
+\end_inset
+
+parsocket
+\begin_inset Quotes erd
+\end_inset
+
+ link has shut down unexpectedly.
+\end_layout
+
+\begin_layout Description
+LL_E_OPEN: Trying to open a link that's open already.
+\end_layout
+
+\begin_layout Description
+LL_E_INUSE: Device is in use by another program.
+\end_layout
+
+\begin_layout Description
+LL_E_TIMEOUT: Operation timed out.
+\end_layout
+
+\begin_layout Description
+LL_E_BADPKT: Received packet has incorrect length.
+\end_layout
+
+\begin_layout Description
+LL_E_CRC: Received packet has incorrect CRC.
+\end_layout
+
+\begin_layout Description
+LL_E_UNEXPECT: Unexpected packet type received.
+\end_layout
+
+\begin_layout Description
+LL_E_NODRIVER: Driver name passed to ll_open() not recognised.
+\end_layout
+
+\begin_layout Description
+LL_E_NOTIMPL: The driver does not implement this function.
+\end_layout
+
+\begin_layout Description
+LL_E_NOTDEV: The 
+\begin_inset Quotes eld
+\end_inset
+
+parport
+\begin_inset Quotes erd
+\end_inset
+
+ driver is has been asked to open something that isn't a parallel port.
+\end_layout
+
+\begin_layout Description
+LL_E_BADNAME: Bad filename
+\end_layout
+
+\begin_layout Description
+LL_E_PASSWORD: Incorrect or missing password.
+\end_layout
+
+\begin_layout Description
+LL_E_AGAIN: Non-blocking I/O not completed.
+\end_layout
+
+\begin_layout Description
+LL_E_SOCKERR: Error looking up an Internet hostname.
+\end_layout
+
+\begin_layout Description
+LL_E_NOTFOUND: File not found.
+\end_layout
+
+\begin_layout Description
+LL_E_BADFUNC: LocoLink function number invalid.
+\end_layout
+
+\begin_layout Description
+LL_E_BADHANDLE: Invalid handle passed to remote system.
+\end_layout
+
+\begin_layout Description
+LL_E_DENIED: Permission denied by remote system.
+\end_layout
+
+\begin_layout Description
+LL_E_TOOMANY: Too many files open on remote system.
+\end_layout
+
+\begin_layout Description
+LL_E_NOTREADY: Remote drive not ready or does not exist.
+\end_layout
+
+\begin_layout Description
+LL_E_FAIL: Emulated DOS call returned failure.
+\end_layout
+
+\begin_layout Description
+LL_E_BADPROTO: Unknown LocoLink protcol version, or unsupported function
+ in this version.
+\end_layout
+
+\begin_layout Description
+LL_E_ABORT: User aborted operation.
+\end_layout
+
+\begin_layout Description
+LL_E_INCOMPAT: Trying to communicate with an incompatible version of LibLink.
+\end_layout
+
+\end_body
+\end_document

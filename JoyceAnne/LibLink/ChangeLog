@@ -1,0 +1,11 @@
+2023-03-05 John Elliott
+
+	* Created an internal LocoLink server which can share a directory
+	 on the host. Currently supports versions 1 and 3 of the LocoLink
+	 protocol.
+
+2023-02-11: liblink v0.0.2
+
+	* Changes by Jacob Nevins to handle possible race conditions
+
+2002-08-03: liblink v0.0.1 initial release

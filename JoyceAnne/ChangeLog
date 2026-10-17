@@ -1,3 +1,19 @@
+2026-10-17 Lee Jackson (fork)
+
+	* ANNE: Home, End, Page Up, Page Down, Insert and Delete now reach the
+	 emulated PCW16. They were missing from the PC scancode table in
+	 PcKeyboard.cxx, so the key events were silently dropped.
+
+	* ANNE: Numeric keypad now works. With NumLock off, keypad 0-9 and '.'
+	 act as the navigation keys; with NumLock on they type digits. Keypad
+	 Enter, '-', '/', '+' and '*' are also mapped.
+
+	* Fixed typos in the PC scancode table: releasing Q or Tab sent the
+	 wrong break code, and releasing PrtSc or Pause sent junk bytes.
+
+	* The scancode table moved to bin/PcKeyMap.hxx, with regression tests
+	 in tests/ ("make -C tests check").
+
 2026-03-26 John Elliott
 
 	* joyce-2.5.5 release.

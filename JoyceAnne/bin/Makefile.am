@@ -74,6 +74,7 @@ libjoyce_a_SOURCES=        		       \
 	GdiPrint.cxx	   GdiPrint.hxx	       \
 	Path.cxx           Path.hxx            \
 	PcKeyboard.cxx	   PcKeyboard.hxx      \
+	PcKeyMap.hxx                           \
 			   Pcw.hxx	       \
         PcwArgs.cxx        PcwArgs.hxx         \
 	PcwAsic.cxx        PcwAsic.hxx         \

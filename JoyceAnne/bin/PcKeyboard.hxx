@@ -74,5 +74,7 @@ protected:
 	zbyte	m_typematic;		// Typematic delay/option byte
 	zbyte	m_scanSet;		// What scancode set to use
 	bool	m_enabled;		// Keyboard enabled?
+	bool	m_kpNumLock[16];	// NumLock state when each keypad
+					// key went down (see PcKeyMap.hxx)
 };
 

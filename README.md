@@ -1,2 +1,4 @@
 # PcW16ers-Joyce-Anne-Fixes
-My little attempt at fixing some quirks I've found in xanne.
+See changelog for more details on fixes I have covered.
+
+https://github.com/leematthewjackson/PcW16ers-Joyce-Anne-Fixes/blob/main/JoyceAnne/ChangeLog
